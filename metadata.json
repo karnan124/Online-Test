@@ -1,0 +1,6 @@
+{
+  "name": "CloudExam Analytics",
+  "description": "Cloud-Based Online Examination and Performance Analytics System with multi-role access, real-time proctored evaluation, analytics, and AWS architecture.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
