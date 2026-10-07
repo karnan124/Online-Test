@@ -42,8 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (payload: { name: string; email: string; password: string; organization?: string }) => {
-    const res = await api.auth.register(payload);
-    setCreator(res.creator);
+    await api.auth.register(payload);
+    // User must sign in from Sign In page as explicitly requested
   };
 
   const logout = () => {

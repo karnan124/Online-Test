@@ -31,6 +31,7 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
 
   // In-UI Delete Confirmation Modal States (No window.confirm!)
   const [testToDelete, setTestToDelete] = useState<Test | null>(null);
+  const [confirmDeletePermission, setConfirmDeletePermission] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -81,13 +82,16 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
 
   // Perform delete after explicit user modal confirmation
   const handleConfirmDelete = async () => {
-    if (!testToDelete) return;
+    if (!testToDelete || !confirmDeletePermission) return;
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      await api.tests.delete(testToDelete.id);
+      const deletedId = testToDelete.id;
       const title = testToDelete.title;
+      await api.tests.delete(deletedId);
+      setTests(prev => prev.filter(t => t.id !== deletedId));
       setTestToDelete(null);
+      setConfirmDeletePermission(false);
       setToastMessage(`Examination "${title}" was permanently deleted.`);
       setTimeout(() => setToastMessage(null), 3000);
       await loadData();
@@ -313,6 +317,7 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
                   <button
                     onClick={() => {
                       setDeleteError(null);
+                      setConfirmDeletePermission(false);
                       setTestToDelete(test);
                     }}
                     title="Delete examination"
@@ -342,7 +347,10 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
           <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
             <button
               onClick={() => {
-                if (!isDeleting) setTestToDelete(null);
+                if (!isDeleting) {
+                  setTestToDelete(null);
+                  setConfirmDeletePermission(false);
+                }
               }}
               className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
             >
@@ -378,9 +386,22 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
               </div>
             </div>
 
-            <p className="text-[11px] text-rose-300/80 mb-4">
+            <p className="text-[11px] text-rose-300/80 mb-3">
               ⚠️ Warning: All student attempts and evaluation scores associated with this examination will be permanently erased.
             </p>
+
+            {/* Explicit Permission Authorization Checkbox */}
+            <label className="flex items-start gap-2.5 p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-rose-300 cursor-pointer mb-4 hover:border-slate-700">
+              <input
+                type="checkbox"
+                checked={confirmDeletePermission}
+                onChange={e => setConfirmDeletePermission(e.target.checked)}
+                className="mt-0.5 rounded bg-slate-900 border-slate-700 text-rose-600 focus:ring-0"
+              />
+              <span className="select-none font-medium leading-snug">
+                I authorize and grant permission to permanently delete this examination.
+              </span>
+            </label>
 
             {deleteError && (
               <div className="p-2.5 rounded bg-rose-950/80 border border-rose-800 text-rose-300 text-xs mb-4">
@@ -392,16 +413,19 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
               <button
                 type="button"
                 disabled={isDeleting}
-                onClick={() => setTestToDelete(null)}
+                onClick={() => {
+                  setTestToDelete(null);
+                  setConfirmDeletePermission(false);
+                }}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={isDeleting}
+                disabled={!confirmDeletePermission || isDeleting}
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-40 flex items-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{isDeleting ? 'Deleting...' : 'Yes, Delete Test'}</span>

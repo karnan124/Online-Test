@@ -37,7 +37,17 @@ function MainApp() {
         setCurrentTab('participantPortal');
       }
     } else if (creator) {
-      setCurrentTab('dashboard');
+      if (currentTab === 'landing') {
+        setCurrentTab('dashboard');
+      }
+    } else {
+      // When account is deleted or user is signed out, always redirect to main landing page
+      if (currentTab !== 'participantPortal') {
+        setCurrentTab('landing');
+        setShowCreateWizard(false);
+        setViewingResponsesTestId(null);
+        setViewingAnalyticsTestId(null);
+      }
     }
   }, [creator]);
 
@@ -93,8 +103,8 @@ function MainApp() {
     );
   }
 
-  // 4. LANDING PAGE FOR LOGGED OUT USERS
-  if (!creator && currentTab === 'landing') {
+  // 4. MAIN LANDING PAGE FOR LOGGED OUT USERS (Cannot access creator workspace without sign in)
+  if (!creator) {
     return (
       <LandingPage
         onStartAsParticipant={(code) => {
@@ -138,6 +148,11 @@ function MainApp() {
             onSuccess={() => {
               setShowCreateWizard(false);
               setCurrentTab('dashboard');
+            }}
+            onTakeTestDirectly={(code) => {
+              setShowCreateWizard(false);
+              setParticipantCode(code);
+              setCurrentTab('participantPortal');
             }}
           />
         ) : viewingResponsesTestId ? (

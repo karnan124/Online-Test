@@ -63,9 +63,14 @@ export const ParticipantResultView: React.FC<ParticipantResultViewProps> = ({ at
     );
   }
 
-  // Check result release control (Section 37)
+  // Check result release control modes
   const isHold = test?.resultReleaseMode === 'MANUAL_RELEASE' && !test?.isResultsReleased;
+  const isHidden = test?.resultReleaseMode === 'HIDDEN';
   const isScoreOnly = test?.resultReleaseMode === 'SCORE_ONLY';
+
+  // Format marks cleanly (e.g. 4 / 6 instead of 4.00 / 6)
+  const formattedScore = Number.isInteger(attempt.score) ? attempt.score : attempt.score.toFixed(2);
+  const formattedTotal = Number.isInteger(attempt.totalMarks) ? attempt.totalMarks : attempt.totalMarks?.toFixed(2);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8 font-sans">
@@ -88,8 +93,21 @@ export const ParticipantResultView: React.FC<ParticipantResultViewProps> = ({ at
           </button>
         </div>
 
-        {/* If results are held by test creator */}
-        {isHold ? (
+        {/* If results are hidden */}
+        {isHidden ? (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Examination Submitted Successfully</h2>
+            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+              Your response has been recorded. As per examination rules, results and score details are confidential and not disclosed to participants.
+            </p>
+            <div className="pt-2 text-xs font-mono text-slate-500">
+              Candidate: {attempt.participantName} ({attempt.rollNumber})
+            </div>
+          </div>
+        ) : isHold ? (
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
               <Lock className="w-6 h-6" />
@@ -123,7 +141,7 @@ export const ParticipantResultView: React.FC<ParticipantResultViewProps> = ({ at
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
                   <span className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Score Scored</span>
                   <div className="text-2xl font-bold font-mono text-white tabular-nums">
-                    {attempt.score.toFixed(2)} <span className="text-xs text-slate-400">/ {attempt.totalMarks}</span>
+                    {formattedScore} <span className="text-xs text-slate-400">/ {formattedTotal}</span>
                   </div>
                 </div>
 
@@ -150,7 +168,15 @@ export const ParticipantResultView: React.FC<ParticipantResultViewProps> = ({ at
               </div>
             </div>
 
-            {/* Question Review (only if not SCORE_ONLY) */}
+            {/* If Score Only mode is enabled */}
+            {isScoreOnly && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                <Lock className="w-4 h-4 text-blue-400" />
+                <span>Detailed question review and answer keys are confidential and not disclosed.</span>
+              </div>
+            )}
+
+            {/* Question Review (only if not SCORE_ONLY and not HIDDEN) */}
             {!isScoreOnly && (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 sm:p-8 space-y-6">
                 <div className="pb-3 border-b border-slate-800">

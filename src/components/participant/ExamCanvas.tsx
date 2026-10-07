@@ -451,6 +451,27 @@ export const ExamCanvas: React.FC<ExamCanvasProps> = ({ attemptId, onFinish }) =
                   </span>
                   <span className="text-slate-600">·</span>
                   <span className="text-xs text-slate-400 font-mono">+{currentQ.marks} Marks</span>
+                  <span className="text-slate-600">·</span>
+                  {currentQ.questionType === 'MCQ' && (
+                    <span className="text-[10px] font-mono text-blue-400 bg-blue-950/60 border border-blue-500/30 px-2 py-0.5 rounded">
+                      Single Choice (Select 1)
+                    </span>
+                  )}
+                  {currentQ.questionType === 'TRUE_FALSE' && (
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded">
+                      True / False
+                    </span>
+                  )}
+                  {currentQ.questionType === 'MULTIPLE_SELECT' && (
+                    <span className="text-[10px] font-mono text-purple-400 bg-purple-950/60 border border-purple-500/30 px-2 py-0.5 rounded">
+                      Multiple Select (Check all correct)
+                    </span>
+                  )}
+                  {currentQ.questionType === 'SHORT_ANSWER' && (
+                    <span className="text-[10px] font-mono text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded">
+                      Short Answer
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">

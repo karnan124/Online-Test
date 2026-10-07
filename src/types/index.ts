@@ -4,7 +4,7 @@ export type QuestionType = 'MCQ' | 'MULTIPLE_SELECT' | 'TRUE_FALSE' | 'SHORT_ANS
 
 export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD';
 
-export type ResultReleaseMode = 'IMMEDIATE' | 'SCORE_ONLY' | 'MANUAL_RELEASE';
+export type ResultReleaseMode = 'IMMEDIATE' | 'SCORE_ONLY' | 'MANUAL_RELEASE' | 'HIDDEN';
 
 export type ResponseStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED' | 'PENDING_MANUAL_EVALUATION';
 

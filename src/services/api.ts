@@ -73,12 +73,11 @@ export const api = {
       return data;
     },
     register: async (payload: { name: string; email: string; password: string; organization?: string }) => {
-      const data = await request<{ success: boolean; token: string; creator: Creator }>('/api/auth/register', {
+      const data = await request<{ success: boolean; message: string; creator: Creator }>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      setStoredToken(data.token);
-      setStoredCreator(data.creator);
+      // Do not auto-login on register as required: user must sign in from Sign In page
       return data;
     },
     getMe: async () => {

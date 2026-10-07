@@ -26,19 +26,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [organization, setOrganization] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setLoading(true);
     try {
       if (authMode === 'login') {
         await login(email, password);
+        setShowAuthModal(false);
+        onCreatorAuthenticated();
       } else {
         await register({ name, email, password, organization });
+        setSuccessMessage('Account created successfully! Please sign in with your email and password.');
+        setAuthMode('login');
+        setPassword('');
       }
-      setShowAuthModal(false);
-      onCreatorAuthenticated();
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
@@ -266,6 +271,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 Create Account
               </button>
             </div>
+
+            {successMessage && (
+              <div className="p-2.5 mb-4 rounded bg-emerald-950/60 border border-emerald-600 text-emerald-200 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+            )}
 
             {error && (
               <div className="p-2.5 mb-4 rounded bg-rose-950/60 border border-rose-800 text-rose-300 text-xs">

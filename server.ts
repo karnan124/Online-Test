@@ -147,7 +147,12 @@ app.post('/api/auth/register', async (req, res) => {
   logCloudWatch('RDS-MySQL', 'INFO', `INSERT into creators: Account created "${name}" (${email})`);
 
   const token = `${newCreator.id}:${Date.now()}`;
-  res.status(201).json({ success: true, token, creator: newCreator });
+  res.status(201).json({ 
+    success: true, 
+    message: 'Account created successfully! Please sign in with your credentials.', 
+    token: null, 
+    creator: newCreator 
+  });
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -275,9 +280,9 @@ app.post('/api/tests', authenticateCreator, (req, res) => {
     enableTabSwitchDetection: enableTabSwitchDetection !== false,
     disableCopyPaste: disableCopyPaste !== false, // Anti-copy enabled by default!
     resultReleaseMode: resultReleaseMode || 'IMMEDIATE',
-    isResultsReleased: true,
+    isResultsReleased: (resultReleaseMode === 'MANUAL_RELEASE' || resultReleaseMode === 'HIDDEN') ? false : true,
     negativeMarkingEnabled: !!negativeMarkingEnabled,
-    negativeMarks: Number(negativeMarks || 0.25),
+    negativeMarks: negativeMarkingEnabled ? Number(negativeMarks || 0) : 0,
     passingPercentage: Number(passingPercentage || 40),
     totalMarks: 0,
     createdAt: new Date().toISOString(),
@@ -917,20 +922,30 @@ function finalizeAttempt(resp: ParticipantResponse, targetStatus: 'SUBMITTED' | 
   let totalScore = 0;
   const negativeMarkPerWrong = (test?.negativeMarkingEnabled && test.negativeMarks) ? test.negativeMarks : 0;
 
+  // Accurately compute total max marks from question weights
+  const totalMax = testQuestions.length > 0 
+    ? testQuestions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0)
+    : (test?.totalMarks || 1);
+  if (test) test.totalMarks = totalMax;
+
   testQuestions.forEach(q => {
     const studentAns = resp.answers[q.id];
+    const qMarks = Number(q.marks) || 1;
 
-    if (q.questionType === 'MCQ') {
+    if (q.questionType === 'MCQ' || q.questionType === 'TRUE_FALSE') {
       const correctOpt = q.options?.find(o => o.isCorrect);
       if (studentAns && studentAns.selectedOptionIds && studentAns.selectedOptionIds.length > 0) {
-        const isCorrect = studentAns.selectedOptionIds[0] === correctOpt?.id;
-        studentAns.isCorrect = isCorrect;
+        const selectedId = studentAns.selectedOptionIds[0];
+        // Match by option ID or option text (e.g. True/False)
+        const isCorrect = selectedId === correctOpt?.id || 
+          (q.questionType === 'TRUE_FALSE' && correctOpt && q.options?.find(o => o.id === selectedId)?.optionText.toLowerCase() === correctOpt.optionText.toLowerCase());
+        studentAns.isCorrect = !!isCorrect;
         if (isCorrect) {
-          studentAns.marksAwarded = q.marks;
-          totalScore += q.marks;
+          studentAns.marksAwarded = qMarks;
+          totalScore += qMarks;
         } else {
-          studentAns.marksAwarded = -negativeMarkPerWrong;
-          totalScore -= negativeMarkPerWrong;
+          studentAns.marksAwarded = negativeMarkPerWrong > 0 ? -negativeMarkPerWrong : 0;
+          if (negativeMarkPerWrong > 0) totalScore -= negativeMarkPerWrong;
         }
       } else if (studentAns) {
         studentAns.isCorrect = false;
@@ -943,19 +958,25 @@ function finalizeAttempt(resp: ParticipantResponse, targetStatus: 'SUBMITTED' | 
         const matchesAll = correctIds.length === selected.length && correctIds.every(id => selected.includes(id));
         studentAns.isCorrect = matchesAll;
         if (matchesAll) {
-          studentAns.marksAwarded = q.marks;
-          totalScore += q.marks;
+          studentAns.marksAwarded = qMarks;
+          totalScore += qMarks;
         } else {
-          studentAns.marksAwarded = -negativeMarkPerWrong;
-          totalScore -= negativeMarkPerWrong;
+          studentAns.marksAwarded = negativeMarkPerWrong > 0 ? -negativeMarkPerWrong : 0;
+          if (negativeMarkPerWrong > 0) totalScore -= negativeMarkPerWrong;
         }
+      } else if (studentAns) {
+        studentAns.isCorrect = false;
+        studentAns.marksAwarded = 0;
       }
     } else if (q.questionType === 'SHORT_ANSWER') {
       if (studentAns && studentAns.textAnswer && q.correctShortAnswer) {
         const isMatch = studentAns.textAnswer.trim().toLowerCase() === q.correctShortAnswer.trim().toLowerCase();
         studentAns.isCorrect = isMatch;
-        studentAns.marksAwarded = isMatch ? q.marks : 0;
-        if (isMatch) totalScore += q.marks;
+        studentAns.marksAwarded = isMatch ? qMarks : 0;
+        if (isMatch) totalScore += qMarks;
+      } else if (studentAns) {
+        studentAns.isCorrect = false;
+        studentAns.marksAwarded = 0;
       }
     }
   });
@@ -964,7 +985,6 @@ function finalizeAttempt(resp: ParticipantResponse, targetStatus: 'SUBMITTED' | 
   const startMs = new Date(resp.startedAt).getTime();
   const timeTaken = Math.max(1, Math.round((now.getTime() - startMs) / 1000));
 
-  const totalMax = test?.totalMarks || 1;
   const finalScore = Math.max(0, Math.round(totalScore * 100) / 100);
   const percentage = Math.round((finalScore / totalMax) * 10000) / 100;
   const passThreshold = test?.passingPercentage || 40;
@@ -973,6 +993,7 @@ function finalizeAttempt(resp: ParticipantResponse, targetStatus: 'SUBMITTED' | 
   resp.submittedAt = now.toISOString();
   resp.timeTakenSeconds = timeTaken;
   resp.score = finalScore;
+  resp.totalMarks = totalMax;
   resp.percentage = percentage;
   resp.passed = passed;
   resp.status = targetStatus;
